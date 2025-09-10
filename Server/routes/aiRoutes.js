@@ -4,6 +4,6 @@ import { generateArticle } from "../controllers/aiController.js";
 
 const aiRouter = express.Router()
 
-aiRouter.post('/generate-articles', auth, generateArticle)
+aiRouter.post('/generate-article', auth, generateArticle)
 
 export default aiRouter
