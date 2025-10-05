@@ -157,7 +157,7 @@ export const generateImage = async (req, res) => {
 
         await axios.post('https://clipdrop-api.co/text-to-image/v1', formData, {
             headers: {
-                'x-api-key': CLIPDROPm_API_KEY,
+                'x-api-key': CLIPDROP_API_KEY,
             },
             responseType: 'arraybuffer'
         })
