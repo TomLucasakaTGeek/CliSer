@@ -4,8 +4,8 @@ import { clerkClient } from "@clerk/express";
 import { v2 as cloudinary } from "cloudinary";
 import axios from "axios"
 import FormData from "form-data";
-import { response } from "express";
-import { effect } from "zod";
+import fs from 'fs'
+import pdf from 'pdf-parse/lib/pdf-parse.js'
 
 
 const AI = new OpenAI({
@@ -309,4 +309,71 @@ export const removeImageObject = async (req, res) => {
     }
 }
 
+export const resumeReview = async (req, res) => {
+    try {
+        const { userId } = req.auth()
+        const resume = req.file
+        const plan = req.plan;
+        
+
+        if (plan !== 'premium') {
+            return res.json({
+                success: false,
+                msg: "This feature is only available for premuim subscriptions"
+            })
+        }
+
+        if ( resume.size > 5 * 1024 * 1024 ) {
+            return res.json({
+                success: false,
+                msg: 'Resume file size exceeds allowed size (5MB).'
+            }) 
+        }
+        
+        const dataBuffer = fs.readFileSync(resume.path)
+        const pdfData = await pdf(dataBuffer)
+
+        const prompt = `Review the following resume and provide constructive feedback on its strength, weaknesses, and areas for improvement. Resume Content:\n\n${pdfData.text}`
+        
+        const response = await AI.chat.completions.create({
+            model: "gemini-2.0-flash",
+            messages: [
+                {
+                    role: "user",
+                    content: prompt,
+                },
+            ],
+            temperature: 0.7,
+            max_tokens: 1000, 
+        });
+
+        const content = response.choices[0].message.content
+
+        await sql`
+            INSERT INTO creations (
+                user_id, 
+                prompt, 
+                content,
+                type,
+            ) VALUES (
+                ${userId},
+                'Review the uploaded resume',
+                ${content},
+                'resume-review',
+            )
+        `;
+
+        res.json({
+            success: true,
+            content
+        })
+
+    } catch (error) {
+        console.log(error.message)
+        res.json({
+            success: false,
+            msg: error.message
+        })
+    }
+}
 
