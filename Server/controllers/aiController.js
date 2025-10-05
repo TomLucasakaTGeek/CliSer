@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
 import cloudinary from "cloudinary";
-
+import { response } from "express";
 
 const AI = new OpenAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -137,52 +137,57 @@ export const generateBlogTitle = async (req, res) => {
         })
     }
 }
+
 export const generateImage = async (req, res) => {
     try {
         const { userId } = req.auth()
         const { prompt, publish } = req.body;
         const plan = req.plan;
+        
 
         if (plan !== 'premium') {
             return res.json({
                 success: false,
-                msg: "This feature is only available for premium subscriptions."
+                msg: "This feature is only available for premuim subscriptions"
             })
         }
 
         const formData = new FormData()
-        form.append('prompt', prompt)
-        
-        const { data } = await axios.post("https://clipdrop-api.co/text-to-image/v1", formData, {
+        formData.append('prompt', prompt)
+
+        await axios.post('https://clipdrop-api.co/text-to-image/v1', formData, {
             headers: {
-                'x-api-key': process.env.CLIPDROP_API_KEY,
+                'x-api-key': YOUR_API_KEY,
             },
-            responseType: "arraybuffer",
+            responseType: 'arraybuffer'
         })
 
-        const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
-
-        const { secure_url } = await cloudinary.uploader.upload(base64Image)
 
         await sql`
             INSERT INTO creations (
                 user_id, 
                 prompt, 
                 content,
-                type,
-                publish
+                type
             ) VALUES (
                 ${userId},
                 ${prompt},
-                ${secure_url},
-                'image',
-                ${publish ?? false}
+                ${content},
+                'blog-title'
             )
         `;
 
+        if ( plan !== 'premium' ) {
+            await clerkClient.users.updateUserMetadata(userId, {
+                privateMetadata: {
+                    free_usage: free_usage + 1
+                }
+            })
+        }
+
         res.json({
             success: true,
-            content: secure_url
+            content
         })
 
     } catch (error) {
@@ -193,4 +198,5 @@ export const generateImage = async (req, res) => {
         })
     }
 }
+
 
