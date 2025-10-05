@@ -2,6 +2,8 @@ import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
 import { v2 as cloudinary } from "cloudinary";
+import axios from "axios"
+import FormData from "form-data";
 import { response } from "express";
 
 
