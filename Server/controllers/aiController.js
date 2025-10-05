@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
-import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import { response } from "express";
+
 
 const AI = new OpenAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -155,12 +156,16 @@ export const generateImage = async (req, res) => {
         const formData = new FormData()
         formData.append('prompt', prompt)
 
-        await axios.post('https://clipdrop-api.co/text-to-image/v1', formData, {
+        const { data } = await axios.post('https://clipdrop-api.co/text-to-image/v1', formData, {
             headers: {
-                'x-api-key': CLIPDROP_API_KEY,
+                'x-api-key': process.env.CLIPDROP_API_KEY,
             },
             responseType: 'arraybuffer'
         })
+
+        const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`
+
+        const { secure_url } = await cloudinary.uploader.upload(base64Image)        
 
 
         await sql`
@@ -168,26 +173,20 @@ export const generateImage = async (req, res) => {
                 user_id, 
                 prompt, 
                 content,
-                type
+                type,
+                publish
             ) VALUES (
                 ${userId},
                 ${prompt},
-                ${content},
-                'blog-title'
+                ${secure_url},
+                'image',
+                ${publish ?? false}
             )
         `;
 
-        if ( plan !== 'premium' ) {
-            await clerkClient.users.updateUserMetadata(userId, {
-                privateMetadata: {
-                    free_usage: free_usage + 1
-                }
-            })
-        }
-
         res.json({
             success: true,
-            content
+            content: secure_url
         })
 
     } catch (error) {
