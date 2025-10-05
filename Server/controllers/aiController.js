@@ -5,6 +5,7 @@ import { v2 as cloudinary } from "cloudinary";
 import axios from "axios"
 import FormData from "form-data";
 import { response } from "express";
+import { effect } from "zod";
 
 
 const AI = new OpenAI({
@@ -189,6 +190,114 @@ export const generateImage = async (req, res) => {
         res.json({
             success: true,
             content: secure_url
+        })
+
+    } catch (error) {
+        console.log(error.message)
+        res.json({
+            success: false,
+            msg: error.message
+        })
+    }
+}
+
+export const removeImageBackground = async (req, res) => {
+    try {
+        const { userId } = req.auth()
+        const { image } = req.file
+        const plan = req.plan;
+        
+
+        if (plan !== 'premium') {
+            return res.json({
+                success: false,
+                msg: "This feature is only available for premuim subscriptions"
+            })
+        }
+
+
+        const { secure_url } = await cloudinary.uploader.upload(image.path, {
+            transformation: [
+                {
+                    effect: 'background_removal',
+                    background_removal: 'remove_the_background'
+                }
+            ]
+        })        
+
+
+        await sql`
+            INSERT INTO creations (
+                user_id, 
+                prompt, 
+                content,
+                type,
+            ) VALUES (
+                ${userId},
+                'Remove background from image',
+                ${secure_url},
+                'image',
+            )
+        `;
+
+        res.json({
+            success: true,
+            content: secure_url
+        })
+
+    } catch (error) {
+        console.log(error.message)
+        res.json({
+            success: false,
+            msg: error.message
+        })
+    }
+}
+
+export const removeImageObject = async (req, res) => {
+    try {
+        const { userId } = req.auth()
+        const { object } = req.body()
+        const { image } = req.file
+        const plan = req.plan;
+        
+
+        if (plan !== 'premium') {
+            return res.json({
+                success: false,
+                msg: "This feature is only available for premuim subscriptions"
+            })
+        }
+
+
+        const { public_id } = await cloudinary.uploader.upload(image.path)
+
+        const imageUrl = cloudinary.url(public_id, {
+            transformation: [
+                {
+                    effect: `gen_remove: ${object}`
+                }
+            ], 
+            resource_type: 'image'
+        })
+
+        await sql`
+            INSERT INTO creations (
+                user_id, 
+                prompt, 
+                content,
+                type,
+            ) VALUES (
+                ${userId},
+                ${`Removed ${object} from image`},
+                ${imageUrl},
+                'image',
+            )
+        `;
+
+        res.json({
+            success: true,
+            content: imageUrl
         })
 
     } catch (error) {
