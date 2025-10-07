@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import axios from 'axios'
 import { useAuth } from '@clerk/clerk-react'
 import toast from 'react-hot-toast'
+import Markdown from 'react-markdown'
 
 axios.defaults.baseURL = import.meta.env.VITE_BASE_URL
 
@@ -42,7 +43,7 @@ const WriteArticle = () => {
         toast.error(data.message)
       }
     } catch (error) {
-      toast.error(data.message)
+      toast.error(error.message)
     }
 
     setLoading(false)
@@ -77,7 +78,6 @@ const WriteArticle = () => {
             loading ? <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin'></span> :
             <Edit className='w-5'/>
           }
-          <Edit className='w-5' />
           Generate article
         </button>
       </form>
@@ -98,7 +98,11 @@ const WriteArticle = () => {
           </div>
           ) : (
             <div className='mt-4 h-full overflow-y-scroll text-sm text-slate-600'>
-              <div>{content}</div>
+              <div className='reset-tw'>
+                <Markdown>
+                  {content}
+                </Markdown>
+              </div>
             </div>
           )}
 
