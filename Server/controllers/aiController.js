@@ -5,7 +5,7 @@ import { v2 as cloudinary } from "cloudinary";
 import axios from "axios"
 import FormData from "form-data";
 import fs from 'fs'
-import pdf from 'pdf-parse/lib/pdf-parse.js'
+import * as pdf from 'pdf-parse'
 
 
 const AI = new OpenAI({
