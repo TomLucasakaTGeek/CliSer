@@ -99,10 +99,7 @@ const BlogTitles = () => {
                 </Markdown>
               </div>
             </div>
-          )
-        }
-
-
+          )}
       </div>
     </div>
   )
